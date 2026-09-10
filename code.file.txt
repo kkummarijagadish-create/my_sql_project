@@ -1,0 +1,312 @@
+create database myproject1;
+use myproject1;
+
+create table doctors(
+doctor_id	varchar(30),
+doctor_name varchar(30),
+specialty varchar(30),
+hire_date date  not null,
+rating int ,
+employment_type varchar(30),
+is_active varchar(30),
+primary key(doctor_id));
+
+create table patients(
+patient_id varchar(30),
+patient_name varchar(30),
+age	tinyint not null,
+gender	varchar(30) 
+,city	varchar(30),
+patient_type varchar(30)	
+,preferred_time_slot	varchar(30) ,
+registration_date date,
+primary key(patient_id));
+
+
+create table   rooms(  
+room_id	varchar(30) primary key,
+room_type varchar(30)  not null ,	
+flor int ,
+equipment_type varchar(30)
+,capacity int ,	
+last_maintenance_date date	
+,is_available varchar(30));
+
+CREATE TABLE appointments(
+    appointment_id VARCHAR(30) PRIMARY KEY,
+    patient_id VARCHAR(30),
+    appointment_date DATE,
+    doctor_id VARCHAR(30),
+    service_type VARCHAR(30),
+    priority VARCHAR(30),
+    estimated_cost DOUBLE,
+    booking_channel VARCHAR(30),
+    FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
+    FOREIGN KEY(doctor_id) REFERENCES doctors(doctor_id)
+);
+CREATE TABLE treatments(
+    treatment_id VARCHAR(30),
+    appointment_id VARCHAR(30),
+    doctor_id VARCHAR(30),
+    room_id VARCHAR(30),
+    actual_treatment_date DATE,
+    treatment_status VARCHAR(30),
+    treatment_attempt INT,
+    treatment_duration_min INT,
+    waiting_time_min INT,
+    treatment_cost DOUBLE,
+    FOREIGN KEY(appointment_id) REFERENCES appointments(appointment_id),
+    PRIMARY KEY(treatment_id),
+    FOREIGN KEY(doctor_id) REFERENCES doctors(doctor_id),
+    FOREIGN KEY(room_id) REFERENCES rooms(room_id)
+);
+
+show tables;
+select  * from appointments;
+select * from doctors;
+select * from rooms;
+select * from patients;
+select * from treatments;
+
+
+
+-- Sprint 3: Basic Analysis / Data Exploration
+-- 1. What is the total number of patients?
+select count(distinct(patient_id)) from patients;
+-- 2. What is the total number of appointments?
+select count(appointment_id) from appointments;
+-- 3. What is the total number of treatment records?
+select count(treatment_id) from treatments;
+-- 4. What are the different medical service types?
+select distinct(service_type) from appointments;
+-- 5. How many doctors are currently active?
+select count(doctor_id)  from doctors where is_active='Yes';
+-- 6. What are the different room types?
+select room_type from rooms group by room_type;
+-- 7. What is the total estimated appointment value?
+select count(appointment_id) from appointments;
+-- 8. What is the average treatment duration?
+select avg(treatment_duration_min
+) from treatments;
+select * from treatments;
+
+-- 4.1 Understand Patient and Appointment Demand
+select * from patients;
+select * from appointments;
+-- Compare appointment volume across cities.
+select p.city, count(*) from appointments a join patients p on a.patient_id=p.patient_id group by p.city; 
+-- Compare appointments across service types and priorities.
+select service_type, priority ,count(*) as appointments from appointments group by service_type,priority order by count(*) desc ;
+-- Examine appointment volume over time.
+select appointment_date ,sum(estimated_cost) as s from appointments group by appointment_date order by s desc ;
+-- Compare estimated appointment value across patient types.
+select * from patients;
+select * from  appointments;
+select  d.patient_type,sum(estimated_cost) from appointments as e join patients as d on   e.patient_id=d.patient_id group by patient_type;
+-- Examine booking channels and their contribution to demand.
+select booking_channel,count(appointment_id) from appointments group by booking_channel;
+
+
+-- my questions
+-- patient --appointment 
+
+-- Compare the total number of appointments across different patient types.
+select * from appointments;
+select * from patients;
+select patient_type,count(appointment_id) from appointments a join patients p on a.patient_id=p.patient_id group by patient_type;
+-- Which cities have the highest number of appointments?
+select city,count(appointment_id) as  max_appointment from patients  p join appointments a
+ on p.patient_id=a.patient_id group by city  order by  max_appointment desc limit 1 ;
+-- Compare the estimated appointment value across different patient types.
+select patient_type,sum(estimated_cost) from patients join appointments on patients.patient_id=appointments.patient_id group by patient_type;
+-- Which patient types use each booking channel most frequently?
+select booking_channel from appointments;
+select * from patients;
+select patient_type,booking_channel,count(patient_id) from patients  p join appointments  a on
+ p.patient_id=a.patient_id group by patient_type ,booking_channel ;
+-- Compare appointment volume across cities and patient types.
+select city,patient_type,count(appointment_id) from patients p join appointments a 
+on p.patient_id=a.patient_id group by city,patient_type  order by count(appointment_id) asc;
+
+
+-- 4.2 Understand Patient Appointment Behaviour
+
+
+-- Compare patients by number of appointments.
+select * from appointments;
+select * from patients;
+select patient_name,count(appointment_id) from patients p join appointments a on p.patient_id=a.patient_id group by patient_name;
+-- Identify patients with higher cumulative estimated appointment value.
+select patient_name,count(appointment_id) from patients p join appointments a on p.patient_id=a.patient_id 
+group by patient_name order by count(appointment_id) desc limit 1 ;
+-- Compare patient activity across cities.
+select city,count(patient_id) from patients  group by city ; 
+-- Compare General, Corporate, and Insurance patients.
+select * from patients;
+select patient_type ,count(appointment_id) from patients p join appointments a on p.patient_id=a.patient_id group by patient_type ;
+-- Examine patient booking patterns over time.
+select registration_date ,count(patient_id)  as w from patients group by registration_date order by w desc;
+
+
+-- my sql 
+
+
+-- Find the top 5 patients based on the number of appointments.
+select * from patients;
+select * from appointments;
+select p.patient_id,p.patient_name, count(a.appointment_id)from patients as p join appointments as  a on p.patient_id=a.patient_id group by patient_id,patient_name
+order by  count(a.appointment_id)desc limit 5;
+-- Find patients who have made more than 5 appointments.
+select p.patient_id,p.patient_name, count(a.appointment_id)from patients as p join appointments as  a on p.patient_id=a.patient_id 
+ group by patient_id,patient_name having count(a.appointment_id)>5;
+-- Calculate the average estimated appointment cost for each patient type.
+select p.patient_type , avg(a.estimated_cost) from patients as p join appointments as a on p.patient_id=a.patient_id group by patient_type;
+-- Find the city with the highest total estimated appointment value.
+select city , sum(estimated_cost) from patients as p join appointments as a on p.patient_id=a.patient_id group by city order by  sum(estimated_cost) desc  limit 1;
+-- Find the top 5 patients based on their cumulative estimated appointment value.
+select p.patient_id ,sum(estimated_cost) as highestvalue from patients p join appointments a on 
+p.patient_id=a.patient_id group by p.patient_id order by highestvalue desc limit 5;
+
+
+
+-- 4.3
+-- 4.3 Evaluate Treatment Performance
+-- Compare treatment outcomes across cities.
+select * from patients;
+select * from appointments;
+select * from treatments;
+select city,t.treatment_status,count(t.treatment_id) from patients p join appointments a on p.patient_id=a.patient_id join 
+treatments t on a.appointment_id=t.appointment_id group by city,t.treatment_status ;
+-- Examine treatment duration and waiting time.
+select * from treatments;
+select 	min(treatment_duration_min) as min_treatment_duration_in_min,
+    avg(treatment_duration_min) as avg_treatment_duration_in_min,
+    min(waiting_time_min) as min_waiting_time,
+    max(waiting_time_min) as max_waiting_time,
+    avg(waiting_time_min) as avg_waiting_time  from treatments; 
+
+-- Compare Completed, Cancelled, No-Show, Rescheduled, and In Progress outcomes.
+select treatment_status,count(treatment_id) from treatments group by treatment_status;
+-- Identify areas with higher treatment activity or poorer outcomes.
+select city,t.treatment_status ,count(t.treatment_id) from patients p join appointments a 
+on p.patient_id=a.patient_id join treatments t on t.appointment_id=a.appointment_id group by city,t.treatment_status  order by count(t.treatment_id) desc limit 1  ; 
+-- Compare treatment performance over time.
+select * from treatments;
+select * from appointments;
+select a.appointment_date,t.treatment_status,count(treatment_id) from appointments a join treatments t on 
+t.appointment_id=a.appointment_id group by appointment_date , t.treatment_status;
+
+
+select * from appointments;
+
+#1. Identify the top 5 patients based on the number of appointments.
+select p.patient_id,
+count(a.appointment_id) as no_of_appointments
+ from patients p join appointments a on p.patient_id=a.patient_id
+group by  p.patient_id
+ order by no_of_appointments 
+ desc limit 5 ;
+ 
+ 
+--  2. Identify patients who have more than 5 appointments.
+select p.patient_id,
+p.patient_name ,
+count(a.appointment_id) as more_than_5_appointments 
+from patients p join appointments a 
+on p.patient_id=a.patient_id
+group by p.patient_id,
+p.patient_name 
+having more_than_5_appointments >5 order by more_than_5_appointments desc;
+
+
+
+-- . Calculate the average estimated appointment cost for each patient type.
+select * from patients;
+select * from appointments;
+select patient_type,avg(estimated_cost) as avg_estimate_appointment_cost
+from patients p join appointments a
+ on p.patient_id=a.patient_id
+ group by patient_type;
+ 
+ 
+ 
+--  Identify the city with the highest total estimated appointment value.
+
+select city, count(appointment_id) as max_appointment_in_city 
+from patients p join appointments a  
+on  p.patient_id = a.patient_id
+ group by city 
+ order by max_appointment_in_city
+ desc limit 1 ;
+ 
+ SELECT p.city,
+SUM(a.estimated_cost) AS total_estimated_value FROM patients p
+JOIN appointments a ON p.patient_id = a.patient_id
+GROUP BY p.city
+ORDER BY total_estimated_value DESC
+LIMIT 1;
+
+-- 5. Identify the top 5 patients based on their cumulative estimated appointment value.
+SELECT p.patient_id,
+SUM(a.estimated_cost) AS cumulative_estimated_value
+FROM patients p JOIN appointments a
+ON p.patient_id = a.patient_id
+GROUP BY p.patient_id
+ORDER BY cumulative_estimated_value DESC
+LIMIT 5;
+
+
+# 5. Identify the top 5 patients based on their cumulative estimated appointment value.
+
+
+-- 6. Compare treatment outcomes across different cities.
+select * from treatments;
+
+select city, treatment_status ,count(treatment_id) as treatment_count
+from patients p join appointments a on p.patient_id=a.patient_id 
+join treatments t on a.appointment_id=t.appointment_id
+group by city, treatment_status ;
+
+#7. Calculate the number of treatments for each treatment status.
+select * from treatments;
+select treatment_status,count(treatment_id)  as noof_treatments
+ from treatments
+ group by treatment_status 
+ order by noof_treatments desc; 
+select * from treatments;
+
+-- TREATMENT & OPERATIONAL ANALYSIS
+-- 8. Calculate the minimum, maximum, and average treatment duration and waiting time.
+select min(treatment_duration_min) as min_treat_time,
+	   max(treatment_duration_min)as max_treat_time,
+       avg(treatment_duration_min) as avg_treat_time,
+       min(waiting_time_min)as min_wait_time,
+       max(waiting_time_min)as max_wait_time,
+       avg(waiting_time_min)as avg_wait_time from treatments;
+       
+       
+-- 10. Compare treatment performance over time based on appointment date and treatment status       
+       
+SELECT a.appointment_date,t.treatment_status, COUNT(t.treatment_id) AS total_treatments
+FROM appointments a
+JOIN treatments t ON a.appointment_id = t.appointment_id
+GROUP BY a.appointment_date, t.treatment_status
+ORDER BY a.appointment_date;
+       
+-- 11. Analyze appointment activity for each doctor.
+
+SELECT d.doctor_id,d.doctor_name,COUNT(a.appointment_id) AS total_appointments
+FROM doctors d
+JOIN appointments a
+ON d.doctor_id = a.doctor_id
+GROUP BY d.doctor_id, d.doctor_name
+ORDER BY total_appointments DESC;
+-- 12. Identify doctors handling the highest number of appointments.
+
+SELECT d.doctor_id, d.doctor_name,COUNT(a.appointment_id) AS total_appointments
+FROM doctors d
+JOIN appointments a
+ON d.doctor_id = a.doctor_id
+GROUP BY d.doctor_id, d.doctor_name
+ORDER BY total_appointments DESC
+LIMIT 1;
